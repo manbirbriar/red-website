@@ -1,4 +1,4 @@
-
+import AvailabilityCalendar from "@/components/AvailabilityCalendar";
 
 const steps = [
   "Fill out the booking request with your school and presentation preferences.",
@@ -6,8 +6,6 @@ const steps = [
   "We connect within 48 hours to confirm logistics and tailor the session.",
   "You receive a confirmation package with presentation details and next steps.",
 ];
-
-
 
 export default function BookingPage() {
   return (
@@ -44,7 +42,7 @@ export default function BookingPage() {
         </ol>
       </section>
 
-      {/* Booking request section removed - handled via contact page or email */}
+      <AvailabilityCalendar />
     </div>
   );
 }
