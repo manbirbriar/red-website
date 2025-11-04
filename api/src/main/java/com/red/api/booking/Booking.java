@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Getter
@@ -53,7 +54,10 @@ public class Booking {
     private LocalDateTime presentationEnd;
 
     @Column(nullable = false)
-    private String status = "booked"; // booked, cancelled
+    private String status = "pending"; // pending, confirmed, rejected, cancelled
+
+    @Column(name = "cancellation_token", nullable = false, unique = true, updatable = false)
+    private String cancellationToken;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
@@ -62,6 +66,12 @@ public class Booking {
     void onCreate() {
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
+        }
+        if (status == null || status.isBlank()) {
+            status = "pending";
+        }
+        if (cancellationToken == null || cancellationToken.isBlank()) {
+            cancellationToken = UUID.randomUUID().toString();
         }
     }
 }

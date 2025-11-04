@@ -9,4 +9,6 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByStatusOrderByCreatedAtDesc(String status);
 
     Optional<Booking> findTopBySlotIdOrderByCreatedAtDesc(String slotId);
+
+    Optional<Booking> findByCancellationToken(String cancellationToken);
 }

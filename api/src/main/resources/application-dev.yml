@@ -6,7 +6,27 @@ spring:
     url: jdbc:postgresql://localhost:5432/red_dev
     username: postgres
     password: postgres
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${SPRING_MAIL_USERNAME}
+    password: ${SPRING_MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
   jpa:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+app:
+  frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
+  mail-from-address: ${APP_MAIL_FROM:reducalgary@gmail.com}
+  admin:
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:change-me}
+    session-ttl-minutes: ${APP_ADMIN_SESSION_TTL_MINUTES:240}

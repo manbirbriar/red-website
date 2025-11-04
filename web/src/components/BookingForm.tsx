@@ -2,6 +2,8 @@
 
 import { useState, FormEvent } from "react";
 
+import { BOOKINGS_ENDPOINT } from "@/lib/apiConfig";
+
 type BookingFormData = {
   name: string;
   email: string;
@@ -16,11 +18,6 @@ type BookingFormProps = {
   selectedSlotId?: string;
   selectedSlotLabel?: string;
 };
-
-const FALLBACK_API_BASE_URL = "http://localhost:8080";
-const BOOKINGS_ENDPOINT =
-  (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? FALLBACK_API_BASE_URL) +
-  "/bookings";
 
 const PRESENTATION_OPTIONS = [
   "Drug Overview",
@@ -127,8 +124,8 @@ export default function BookingForm({ selectedSlotId, selectedSlotLabel }: Booki
         <div className="mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-8 text-center">
           <h3 className="text-xl font-semibold text-green-800">Request Submitted!</h3>
           <p className="mt-2 text-sm text-green-700">
-            Thank you for your interest. We&apos;ll reach out within 48 hours to confirm details and
-            coordinate your RED presentation.
+            Thank you for your interest. We&apos;ve emailed your request details (including a cancellation link) and will follow up within
+            48 hours to confirm logistics.
           </p>
         </div>
       ) : (

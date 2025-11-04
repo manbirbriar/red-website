@@ -9,6 +9,8 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
 
+import { AVAILABILITY_ENDPOINT } from "@/lib/apiConfig";
+
 type RawBookingDetails = {
   id?: number | string;
   name?: string;
@@ -59,11 +61,6 @@ type BookingDetails = {
 };
 
 type FetchState = "idle" | "loading" | "loaded" | "error";
-
-const FALLBACK_API_BASE_URL = "http://localhost:8080";
-const AVAILABILITY_ENDPOINT =
-  (process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, "") ?? FALLBACK_API_BASE_URL) +
-  "/availability";
 
 const FullCalendar = dynamic(
   () => import("@fullcalendar/react"),

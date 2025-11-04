@@ -2,6 +2,7 @@ package com.red.api.booking;
 
 import com.red.api.availability.Availability;
 import com.red.api.availability.AvailabilityRepository;
+import com.red.api.notifications.EmailService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,19 +11,16 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
@@ -36,14 +34,7 @@ public class BookingController {
 
     private final BookingRepository repository;
     private final AvailabilityRepository availabilityRepository;
-
-    @GetMapping
-    public List<Booking> getAllBookings(@RequestParam(required = false) String status) {
-        if (status != null && !status.isBlank()) {
-            return repository.findByStatusOrderByCreatedAtDesc(status);
-        }
-        return repository.findAll();
-    }
+    private final EmailService emailService;
 
     record CreateBookingRequest(
             @NotBlank String name,
@@ -83,30 +74,58 @@ public class BookingController {
         booking.setSlotLabel(buildSlotLabel(availability.getStart(), availability.getEnd()));
         booking.setPresentationStart(availability.getStart());
         booking.setPresentationEnd(availability.getEnd());
-        booking.setStatus("booked");
         booking.setCreatedAt(LocalDateTime.now());
 
         Booking saved = repository.save(booking);
 
-        availability.setStatus("booked");
+        availability.setStatus("pending");
         availabilityRepository.save(availability);
 
+        emailService.sendBookingPendingEmail(saved);
+
         return saved;
     }
 
-    @PatchMapping("/{id}/status")
-    @Transactional
-    public Booking updateStatus(@PathVariable Long id, @RequestParam String status) {
-        Booking booking = repository.findById(id)
+    @GetMapping("/cancellations/{token}")
+    public CancellationResponse getBookingForCancellation(@PathVariable String token) {
+        Booking booking = repository.findByCancellationToken(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
 
-        booking.setStatus(status);
+        return toCancellationResponse(booking);
+    }
+
+    @PostMapping("/cancellations/{token}")
+    @Transactional
+    public CancellationResponse cancelBooking(@PathVariable String token) {
+        Booking booking = repository.findByCancellationToken(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+
+        if ("cancelled".equalsIgnoreCase(booking.getStatus())) {
+            return toCancellationResponse(booking);
+        }
+
+        if ("rejected".equalsIgnoreCase(booking.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking request has already been rejected.");
+        }
+
+        booking.setStatus("cancelled");
         Booking saved = repository.save(booking);
 
-        updateAvailabilityStatus(saved.getSlotId(), status);
+        updateAvailabilityStatus(saved.getSlotId(), "cancelled");
+        emailService.sendBookingCancelledEmail(saved);
 
-        return saved;
+        return toCancellationResponse(saved);
     }
+
+    public record CancellationResponse(
+            Long bookingId,
+            String status,
+            String slotLabel,
+            String teacherName,
+            String school,
+            String presentationType,
+            String location
+    ) {}
 
     private void updateAvailabilityStatus(String slotId, String bookingStatus) {
         if (slotId == null || slotId.isBlank()) {
@@ -126,10 +145,12 @@ public class BookingController {
         }
 
         Availability availability = availabilityOptional.get();
-        if ("cancelled".equalsIgnoreCase(bookingStatus)) {
+        if ("cancelled".equalsIgnoreCase(bookingStatus) || "rejected".equalsIgnoreCase(bookingStatus)) {
             availability.setStatus("available");
-        } else if ("booked".equalsIgnoreCase(bookingStatus)) {
+        } else if ("confirmed".equalsIgnoreCase(bookingStatus)) {
             availability.setStatus("booked");
+        } else if ("pending".equalsIgnoreCase(bookingStatus)) {
+            availability.setStatus("pending");
         }
 
         availabilityRepository.save(availability);
@@ -145,5 +166,17 @@ public class BookingController {
             label.append(" – ").append(SLOT_LABEL_FORMATTER.format(end));
         }
         return label.toString();
+    }
+
+    private CancellationResponse toCancellationResponse(Booking booking) {
+        return new CancellationResponse(
+                booking.getId(),
+                booking.getStatus(),
+                booking.getSlotLabel(),
+                booking.getName(),
+                booking.getSchool(),
+                booking.getPresentationType(),
+                booking.getLocation()
+        );
     }
 }

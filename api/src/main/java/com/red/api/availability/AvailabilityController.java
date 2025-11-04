@@ -58,7 +58,8 @@ public class AvailabilityController {
     }
 
     private AvailabilityResponse toResponse(Availability slot) {
-        BookingDetails bookingDetails = "booked".equalsIgnoreCase(slot.getStatus())
+        BookingDetails bookingDetails = ("booked".equalsIgnoreCase(slot.getStatus())
+                || "pending".equalsIgnoreCase(slot.getStatus()))
                 ? bookingRepository.findTopBySlotIdOrderByCreatedAtDesc(String.valueOf(slot.getId()))
                 .map(booking -> new BookingDetails(
                         booking.getId(),
