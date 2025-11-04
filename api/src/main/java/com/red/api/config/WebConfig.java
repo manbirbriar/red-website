@@ -12,6 +12,12 @@ public class WebConfig {
                 reg.addMapping("/api/**")
                         .allowedOrigins("http://localhost:5173","http://localhost:3000")
                         .allowedMethods("GET","POST","PATCH","DELETE");
+                reg.addMapping("/availability")
+                        .allowedOrigins("http://localhost:5173","http://localhost:3000")
+                        .allowedMethods("GET");
+                reg.addMapping("/bookings")
+                        .allowedOrigins("http://localhost:5173","http://localhost:3000")
+                        .allowedMethods("GET","POST","PATCH");
             }
         };
     }
