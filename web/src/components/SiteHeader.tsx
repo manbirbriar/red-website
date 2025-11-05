@@ -22,9 +22,9 @@ export function SiteHeader() {
           <Image
             src={logoSrc}
             alt="Reforming Education on Drugs logo"
-            width={56}
+            width={120}
             height={56}
-            className="h-12 w-12 rounded-full border border-red-500 object-contain"
+            className="h-12 w-auto object-contain"
             priority
           />
           <span className="text-lg font-semibold uppercase tracking-wide text-red-700">
