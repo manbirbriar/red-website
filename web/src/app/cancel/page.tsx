@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -20,7 +20,39 @@ type CancellationDetails = {
 
 type FetchState = "idle" | "loading" | "loaded" | "error";
 
-export default function CancelPage() {
+function PageIntro() {
+  return (
+    <section className="space-y-6 text-red-800">
+      <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-600">
+        Cancel a booking
+      </p>
+      <h1 className="text-4xl font-semibold leading-tight">
+        Manage your RED presentation request
+      </h1>
+      <p className="max-w-2xl text-base text-slate-700">
+        Use this page to review the booking linked in your email and, if needed, cancel the request.
+      </p>
+    </section>
+  );
+}
+
+function CancelPageLoading() {
+  return (
+    <div className="space-y-12">
+      <PageIntro />
+      <section className="rounded-3xl border border-red-100 bg-white px-6 py-10 shadow-sm md:px-10">
+        <p className="text-sm text-slate-600">Loading booking details…</p>
+      </section>
+      <div className="text-sm text-slate-600">
+        <Link href="/booking" className="font-semibold text-red-700 hover:text-red-900">
+          Back to booking overview
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function CancelPageContent() {
   const searchParams = useSearchParams();
   const token = searchParams.get("token");
 
@@ -116,14 +148,7 @@ export default function CancelPage() {
 
   return (
     <div className="space-y-12">
-      <section className="space-y-6 text-red-800">
-        <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-600">Cancel a booking</p>
-        <h1 className="text-4xl font-semibold leading-tight">Manage your RED presentation request</h1>
-        <p className="max-w-2xl text-base text-slate-700">
-          Use this page to review the booking linked in your email and, if needed, cancel the request.
-        </p>
-      </section>
-
+      <PageIntro />
       <section className="rounded-3xl border border-red-100 bg-white px-6 py-10 shadow-sm md:px-10">
         {state === "loading" ? (
           <p className="text-sm text-slate-600">Loading booking details…</p>
@@ -231,5 +256,13 @@ export default function CancelPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function CancelPage() {
+  return (
+    <Suspense fallback={<CancelPageLoading />}>
+      <CancelPageContent />
+    </Suspense>
   );
 }
