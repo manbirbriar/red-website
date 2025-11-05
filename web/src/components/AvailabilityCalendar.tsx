@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { EventClickArg, EventInput, EventSourceInput } from "@fullcalendar/core/index.js";
-import type { FullCalendarProps } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -62,6 +61,8 @@ type BookingDetails = {
 
 type FetchState = "idle" | "loading" | "loaded" | "error";
 
+type FullCalendarComponent = typeof import("@fullcalendar/react")["default"];
+
 const FullCalendar = dynamic(
   () => import("@fullcalendar/react"),
   {
@@ -72,34 +73,95 @@ const FullCalendar = dynamic(
       </div>
     ),
   },
-) as unknown as (props: FullCalendarProps) => JSX.Element;
+) as unknown as FullCalendarComponent;
 
-const locale =
-  typeof navigator !== "undefined" && navigator.language ? navigator.language : "en-CA";
+const CALENDAR_LOCALE = "en-CA";
 
-const dateFormatter = new Intl.DateTimeFormat(locale, {
+const dateFormatter = new Intl.DateTimeFormat(CALENDAR_LOCALE, {
   weekday: "long",
   month: "long",
   day: "numeric",
 });
 
-const shortDateFormatter = new Intl.DateTimeFormat(locale, {
+const shortDateFormatter = new Intl.DateTimeFormat(CALENDAR_LOCALE, {
   month: "short",
   day: "numeric",
 });
 
-const timeFormatter = new Intl.DateTimeFormat(locale, {
+const timeFormatter = new Intl.DateTimeFormat(CALENDAR_LOCALE, {
   hour: "numeric",
   minute: "2-digit",
 });
 
-const longDateTimeFormatter = new Intl.DateTimeFormat(locale, {
+const longDateTimeFormatter = new Intl.DateTimeFormat(CALENDAR_LOCALE, {
   weekday: "long",
   month: "long",
   day: "numeric",
   hour: "numeric",
   minute: "2-digit",
 });
+
+type SlotTimeParts = {
+  time: string;
+  meridiem?: string;
+};
+
+function getSlotTimeParts(date: Date): SlotTimeParts {
+  const baseOptions: Intl.DateTimeFormatOptions = {
+    hour: "numeric",
+    hour12: true,
+    minute: "2-digit",
+  };
+
+  const formatter = new Intl.DateTimeFormat(CALENDAR_LOCALE, baseOptions);
+  const parts = formatter.formatToParts(date);
+
+  const time = parts
+    .filter((part) => part.type !== "dayPeriod")
+    .map((part) => part.value)
+    .join("")
+    .trim();
+
+  const dayPeriod = parts.find((part) => part.type === "dayPeriod");
+  const meridiem = dayPeriod
+    ? dayPeriod.value.replace(/\./g, "").toLowerCase()
+    : undefined;
+
+  return { time, meridiem };
+}
+
+function formatSingleSlotTime(parts: SlotTimeParts): string {
+  return parts.meridiem ? `${parts.time} ${parts.meridiem}` : parts.time;
+}
+
+function formatTimeRangeForSlot(startDate: Date, endDate?: Date): string {
+  const startParts = getSlotTimeParts(startDate);
+
+  if (!endDate || Number.isNaN(endDate.getTime())) {
+    return formatSingleSlotTime(startParts);
+  }
+
+  const endParts = getSlotTimeParts(endDate);
+
+  if (
+    startDate.toDateString() === endDate.toDateString() &&
+    startParts.meridiem &&
+    endParts.meridiem &&
+    startParts.meridiem === endParts.meridiem
+  ) {
+    return `${startParts.time}–${endParts.time} ${startParts.meridiem}`;
+  }
+
+  const startLabel = formatSingleSlotTime(startParts);
+  const endLabel = formatSingleSlotTime(endParts);
+
+  if (startDate.toDateString() !== endDate.toDateString()) {
+    const endDateLabel = shortDateFormatter.format(endDate);
+    return `${startLabel} – ${endDateLabel} ${endLabel}`;
+  }
+
+  return `${startLabel} – ${endLabel}`;
+}
 
 function formatSlotLabel(startISO: string, endISO?: string, availabilityStatus?: string) {
   const startDate = new Date(startISO);
@@ -114,14 +176,21 @@ function formatSlotLabel(startISO: string, endISO?: string, availabilityStatus?:
   const statusPrefix =
     availabilityStatus && availabilityStatus !== "available" ? "Booked" : "Available";
 
-  let label = `${statusPrefix} · ${shortDateFormatter.format(startDate)}`;
-  label += `, ${timeFormatter.format(startDate)}`;
+  const lines: string[] = [];
 
-  if (endDate && !Number.isNaN(endDate.getTime())) {
-    label += ` – ${timeFormatter.format(endDate)}`;
+  if (
+    endDate &&
+    !Number.isNaN(endDate.getTime()) &&
+    startDate.toDateString() !== endDate.toDateString()
+  ) {
+    lines.push(
+      `${shortDateFormatter.format(startDate)} → ${shortDateFormatter.format(endDate)}`,
+    );
   }
 
-  return label;
+  lines.push(formatTimeRangeForSlot(startDate, endDate), statusPrefix);
+
+  return lines.join("\n");
 }
 
 function formatSelectedSlot(startISO: string, endISO?: string) {
@@ -493,6 +562,7 @@ export default function AvailabilityCalendar() {
             eventClick={handleEventClick}
             selectable={false}
             eventDisplay="block"
+            displayEventTime={false}
             eventTimeFormat={{
               hour: "numeric",
               minute: "2-digit",
@@ -551,7 +621,7 @@ export default function AvailabilityCalendar() {
             {state === "loading"
               ? "updating…"
               : lastUpdated
-                ? new Intl.DateTimeFormat(locale, {
+                ? new Intl.DateTimeFormat(CALENDAR_LOCALE, {
                     hour: "numeric",
                     minute: "2-digit",
                   }).format(lastUpdated)

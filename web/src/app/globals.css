@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+@layer components {
+  .fc .fc-daygrid-day-frame {
+    min-height: 7rem;
+    padding: 0.75rem 0.5rem;
+  }
+
+  .fc .fc-daygrid-day-top {
+    margin-bottom: 0.5rem;
+  }
+
+  .fc .fc-daygrid-event {
+    white-space: normal;
+  }
+
+  .fc .fc-event-title {
+    white-space: pre-wrap;
+    line-height: 1.25;
+  }
+
+  @media (min-width: 768px) {
+    .fc .fc-daygrid-day-frame {
+      min-height: 8rem;
+      padding: 0.95rem 0.6rem;
+    }
+  }
+}
