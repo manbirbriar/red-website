@@ -42,6 +42,8 @@ public class EmailService {
 
                 We'll follow up within 48 hours to confirm next steps.
 
+                Please do not reply to this email. If you need to reach us, email reducalgary@gmail.com.
+
                 — The RED Team
                 """.formatted(
                 Optional.ofNullable(booking.getName()).orElse("there"),
@@ -72,6 +74,8 @@ public class EmailService {
 
                 If anything changes, you can still cancel using the link below:
                 %s
+
+                Please do not reply to this email. If you need to reach us, email reducalgary@gmail.com.
 
                 We look forward to meeting your class!
 
@@ -104,6 +108,8 @@ public class EmailService {
 
                 Please reach out at reducalgary@gmail.com if you'd like to explore alternate times.
 
+                Please do not reply to this email.
+
                 — The RED Team
                 """.formatted(
                 Optional.ofNullable(booking.getName()).orElse("there"),
@@ -128,6 +134,8 @@ public class EmailService {
                   • School: %s
                   • Presentation: %s
                   • Original slot: %s
+
+                Please do not reply to this email. If you need to reach us, email reducalgary@gmail.com.
 
                 — The RED Team
                 """.formatted(
@@ -158,6 +166,9 @@ public class EmailService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromAddress);
         message.setTo(to);
+        Optional.ofNullable(appProperties.mailCopyAddress())
+                .filter(copy -> !copy.isBlank())
+                .ifPresent(copy -> message.setBcc(copy));
         message.setSubject(subject);
         message.setText(body);
 

@@ -6,6 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record AppProperties(
         String frontendBaseUrl,
         String mailFromAddress,
+        String mailCopyAddress,
         Admin admin
 ) {
     public record Admin(
