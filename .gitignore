@@ -249,7 +249,9 @@ web_modules/
 .yarn-integrity
 
 # dotenv environment variable files
+api/.env
 .env
+docker/.env
 .env.development.local
 .env.test.local
 .env.production.local
@@ -314,3 +316,7 @@ dist
 .svelte-kit
 
 # End of https://www.toptal.com/developers/gitignore/api/java,intellij,macos,node
+
+# Deployment configs that may hold secrets
+apprunner-source-config.json
+apprunner-config.json

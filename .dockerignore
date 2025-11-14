@@ -1,0 +1,10 @@
+# Ignore everything by default...
+**
+
+# ...but keep the API module that the Dockerfile copies.
+!api/
+!api/**/*
+
+# Allow the Dockerfile itself so builds succeed when using -f docker/Dockerfile.api.
+!docker/
+!docker/Dockerfile.api

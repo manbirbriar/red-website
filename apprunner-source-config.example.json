@@ -1,0 +1,48 @@
+{
+  "ServiceName": "red-api",
+  "SourceConfiguration": {
+    "AutoDeploymentsEnabled": true,
+    "ImageRepository": {
+      "ImageIdentifier": "<account-id>.dkr.ecr.<region>.amazonaws.com/red-api:latest",
+      "ImageRepositoryType": "ECR",
+      "ImageConfiguration": {
+        "Port": "8080",
+        "RuntimeEnvironmentVariables": {
+          "SPRING_PROFILES_ACTIVE": "prod",
+          "SPRING_DATASOURCE_URL": "jdbc:postgresql://<rds-endpoint>:5432/<db-name>?sslmode=require",
+          "SPRING_DATASOURCE_USERNAME": "<db-username>",
+          "SPRING_DATASOURCE_PASSWORD": "<db-password>",
+          "SPRING_JPA_HIBERNATE_DDL_AUTO": "validate",
+          "SPRING_MAIL_HOST": "smtp.gmail.com",
+          "SPRING_MAIL_PORT": "587",
+          "SPRING_MAIL_USERNAME": "reducalgarybookings@gmail.com",
+          "SPRING_MAIL_PASSWORD": "<gmail-app-password>",
+          "SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH": "true",
+          "SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE": "true",
+          "SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_REQUIRED": "true",
+          "APP_MAIL_FROM_ADDRESS": "reducalgarybookings@gmail.com",
+          "APP_MAIL_COPY_ADDRESS": "reducalgary@gmail.com",
+          "APP_FRONTEND_BASE_URL": "https://example-frontend.example.com",
+          "APP_ADMIN_USERNAME": "admin",
+          "APP_ADMIN_PASSWORD": "<strong-admin-password>",
+          "APP_ADMIN_SESSION_TTL_MINUTES": "240"
+        }
+      }
+    },
+    "AuthenticationConfiguration": {
+      "AccessRoleArn": "arn:aws:iam::<account-id>:role/<AppRunnerECRAccessRole>"
+    }
+  },
+  "InstanceConfiguration": {
+    "Cpu": "1 vCPU",
+    "Memory": "2 GB"
+  },
+  "HealthCheckConfiguration": {
+    "Protocol": "HTTP",
+    "Path": "/availability",
+    "Interval": 10,
+    "Timeout": 5,
+    "HealthyThreshold": 1,
+    "UnhealthyThreshold": 5
+  }
+}

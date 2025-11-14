@@ -25,7 +25,8 @@ spring:
 
 app:
   frontend-base-url: ${APP_FRONTEND_BASE_URL:http://localhost:3000}
-  mail-from-address: ${APP_MAIL_FROM:reducalgary@gmail.com}
+  mail-from-address: ${APP_MAIL_FROM_ADDRESS:reducalgarybookings@gmail.com}
+  mail-copy-address: ${APP_MAIL_COPY_ADDRESS:reducalgary@gmail.com}
   admin:
     username: ${APP_ADMIN_USERNAME:admin}
     password: ${APP_ADMIN_PASSWORD:change-me}

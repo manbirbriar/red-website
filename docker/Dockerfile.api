@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1.7
+
+############################
+# Build stage
+############################
+FROM maven:3.9.9-eclipse-temurin-21 AS build
+
+WORKDIR /workspace
+
+# Preload dependencies (context is repo root, so copy from api/)
+COPY api/pom.xml ./pom.xml
+RUN mvn -q -DskipTests dependency:go-offline
+
+# Copy source code and build the jar
+COPY api/src ./src
+RUN mvn -q -DskipTests package
+
+############################
+# Runtime stage
+############################
+FROM eclipse-temurin:21-jre
+
+WORKDIR /app
+
+# Copy the packaged application
+COPY --from=build /workspace/target/*.jar app.jar
+
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
