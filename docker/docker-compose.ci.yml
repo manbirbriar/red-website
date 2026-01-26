@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+   # user: root # Required to access docker socket
+    privileged: true
+    ports:
+      - "8081:8080" # Jenkins web interface on port 8081 (to avoid conflict with app on 8080)
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock # Allow Jenkins to run Docker commands
+    environment:
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    networks:
+      - ci-network
+
+  sonarqube:
+    image: sonarqube:community
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://db-sonar:5432/sonar
+      - SONAR_JDBC_USERNAME=sonar
+      - SONAR_JDBC_PASSWORD=sonar
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    depends_on:
+      - db-sonar
+    networks:
+      - ci-network
+
+  db-sonar:
+    image: postgres:15
+    platform: linux/amd64
+    environment:
+      - POSTGRES_USER=sonar
+      - POSTGRES_PASSWORD=sonar
+      - POSTGRES_DB=sonar
+    volumes:
+      - sonar_db_data:/var/lib/postgresql/data
+    networks:
+      - ci-network
+
+volumes:
+  jenkins_home:
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
+  sonar_db_data:
+
+networks:
+  ci-network:
