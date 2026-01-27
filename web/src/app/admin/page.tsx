@@ -438,10 +438,10 @@ export default function AdminDashboardPage() {
         <div className="mt-8 divide-y divide-slate-200">
           {loading ? (
             <p className="text-sm text-slate-600">Loading availability…</p>
-          ) : availability.length === 0 ? (
+          ) : availability.filter((slot) => slot.isActive).length === 0 ? (
             <p className="text-sm text-slate-600">No availability slots created yet.</p>
           ) : (
-            availability.map((slot) => (
+            availability.filter((slot) => slot.isActive).map((slot) => (
               <article key={slot.id} className="flex flex-col gap-3 py-4 md:flex-row md:items-center md:justify-between">
                 <div>
                   <h3 className="text-base font-semibold text-red-800">Slot #{slot.id}</h3>
