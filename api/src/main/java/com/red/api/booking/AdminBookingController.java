@@ -3,6 +3,8 @@ package com.red.api.booking;
 import com.red.api.availability.AvailabilityRepository;
 import com.red.api.notifications.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +23,8 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class AdminBookingController {
 
+    private static final Logger log = LoggerFactory.getLogger(AdminBookingController.class);
+
     private static final List<String> ALLOWED_STATUSES = List.of("pending", "confirmed", "rejected", "cancelled");
 
     private final BookingRepository bookingRepository;
@@ -30,39 +34,51 @@ public class AdminBookingController {
     @GetMapping
     public List<Booking> list(@RequestParam(required = false) String status) {
         if (status != null && !status.isBlank()) {
+            log.info("Admin listing bookings with status: {}", status);
             return bookingRepository.findByStatusOrderByCreatedAtDesc(status.toLowerCase(Locale.ROOT));
         }
+        log.info("Admin listing all bookings");
         return bookingRepository.findAll();
     }
 
     @PatchMapping("/{id}/status")
     @Transactional
     public Booking adminUpdateStatus(@PathVariable Long id, @RequestParam String status) {
+        log.info("Admin updating booking {} status to: {}", id, status);
         String normalisedStatus = status == null ? null : status.trim().toLowerCase(Locale.ROOT);
 
         if (normalisedStatus == null || normalisedStatus.isBlank()) {
+            log.error("Admin status update failed - status is empty for booking {}", id);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status is required");
         }
 
         if (!ALLOWED_STATUSES.contains(normalisedStatus)) {
+            log.error("Admin status update failed - unsupported status '{}' for booking {}", status, id);
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unsupported booking status: " + status);
         }
 
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> {
+                    log.error("Admin status update failed - booking {} not found", id);
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");
+                });
 
         if ("cancelled".equalsIgnoreCase(booking.getStatus()) && !"cancelled".equals(normalisedStatus)) {
+            log.warn("Admin status update failed - cannot update cancelled booking {}", id);
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled bookings cannot be updated.");
         }
 
         if (normalisedStatus.equals(booking.getStatus())) {
+            log.info("Booking {} already has status: {}", id, normalisedStatus);
             return booking;
         }
 
+        String oldStatus = booking.getStatus();
         booking.setStatus(normalisedStatus);
         Booking saved = bookingRepository.save(booking);
 
         updateAvailabilityStatus(saved);
+        log.info("Booking {} status updated: {} -> {} (School: {})", id, oldStatus, normalisedStatus, saved.getSchool());
         sendNotificationEmail(saved);
 
         return saved;

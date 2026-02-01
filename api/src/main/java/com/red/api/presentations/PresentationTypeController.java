@@ -1,6 +1,8 @@
 package com.red.api.presentations;
 
 import jakarta.validation.constraints.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -11,10 +13,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PresentationTypeController {
 
+    private static final Logger log = LoggerFactory.getLogger(PresentationTypeController.class);
+
     private final PresentationTypeRepo repo;
 
     @GetMapping
     public List<PresentationType> list() {
+        log.info("Listing all presentation types");
         return repo.findAll();
     }
 
@@ -28,6 +33,7 @@ public class PresentationTypeController {
 
     @PostMapping
     public PresentationType create(@RequestBody CreatePT body) {
+        log.info("Creating presentation type: {}", body.name());
         var pt = new PresentationType();
         pt.setName(body.name());
         pt.setDurationMin(body.durationMin());
@@ -35,6 +41,8 @@ public class PresentationTypeController {
         pt.setGradeMin(body.gradeMin());
         pt.setGradeMax(body.gradeMax());
         pt.setIsActive(true);
-        return repo.save(pt);
+        PresentationType saved = repo.save(pt);
+        log.info("Presentation type created - ID: {}, Name: {}", saved.getId(), saved.getName());
+        return saved;
     }
 }

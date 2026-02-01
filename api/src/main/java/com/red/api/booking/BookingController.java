@@ -8,6 +8,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -28,6 +30,8 @@ import java.util.Optional;
 @RequestMapping("/bookings")
 @RequiredArgsConstructor
 public class BookingController {
+
+    private static final Logger log = LoggerFactory.getLogger(BookingController.class);
 
     private static final DateTimeFormatter SLOT_LABEL_FORMATTER =
             DateTimeFormatter.ofPattern("EEEE, MMMM d 'at' h:mm a", Locale.CANADA);
@@ -51,14 +55,20 @@ public class BookingController {
     @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     public Booking createBooking(@Valid @RequestBody CreateBookingRequest request) {
+        log.info("Creating booking for {} at {} (slotId: {})", request.school(), request.email(), request.slotId());
         Availability availability = availabilityRepository.findById(request.slotId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Availability slot not found"));
+                .orElseThrow(() -> {
+                    log.error("Booking creation failed - slot not found: {}", request.slotId());
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Availability slot not found");
+                });
 
         if (!Boolean.TRUE.equals(availability.getIsActive())) {
+            log.warn("Booking creation failed - slot {} is inactive", request.slotId());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This slot is no longer active");
         }
 
         if (!"available".equalsIgnoreCase(availability.getStatus())) {
+            log.warn("Booking creation failed - slot {} status is: {}", request.slotId(), availability.getStatus());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This slot has already been booked");
         }
 
@@ -81,6 +91,7 @@ public class BookingController {
         availability.setStatus("pending");
         availabilityRepository.save(availability);
 
+        log.info("Booking created successfully - ID: {}, School: {}, Slot: {}", saved.getId(), saved.getSchool(), saved.getSlotLabel());
         emailService.sendBookingPendingEmail(saved);
 
         return saved;
@@ -88,8 +99,12 @@ public class BookingController {
 
     @GetMapping("/cancellations/{token}")
     public CancellationResponse getBookingForCancellation(@PathVariable String token) {
+        log.info("Cancellation lookup for token: {}...", token.substring(0, Math.min(8, token.length())));
         Booking booking = repository.findByCancellationToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> {
+                    log.warn("Cancellation lookup failed - booking not found for token");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");
+                });
 
         return toCancellationResponse(booking);
     }
@@ -97,14 +112,20 @@ public class BookingController {
     @PostMapping("/cancellations/{token}")
     @Transactional
     public CancellationResponse cancelBooking(@PathVariable String token) {
+        log.info("Cancellation request for token: {}...", token.substring(0, Math.min(8, token.length())));
         Booking booking = repository.findByCancellationToken(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found"));
+                .orElseThrow(() -> {
+                    log.error("Cancellation failed - booking not found for token");
+                    return new ResponseStatusException(HttpStatus.NOT_FOUND, "Booking not found");
+                });
 
         if ("cancelled".equalsIgnoreCase(booking.getStatus())) {
+            log.info("Booking {} already cancelled", booking.getId());
             return toCancellationResponse(booking);
         }
 
         if ("rejected".equalsIgnoreCase(booking.getStatus())) {
+            log.warn("Cancellation failed - booking {} already rejected", booking.getId());
             throw new ResponseStatusException(HttpStatus.CONFLICT, "This booking request has already been rejected.");
         }
 
@@ -112,6 +133,7 @@ public class BookingController {
         Booking saved = repository.save(booking);
 
         updateAvailabilityStatus(saved.getSlotId(), "cancelled");
+        log.info("Booking cancelled - ID: {}, School: {}", saved.getId(), saved.getSchool());
         emailService.sendBookingCancelledEmail(saved);
 
         return toCancellationResponse(saved);
