@@ -6,14 +6,23 @@ services:
       context: ..
       dockerfile: docker/Dockerfile.api
     image: red-api:local
+    env_file:
+      - ../.env
     environment:
+      # Required settings
       SPRING_PROFILES_ACTIVE: dev
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/red_dev
-      SPRING_MAIL_USERNAME: ${SPRING_MAIL_USERNAME:-}
-      SPRING_MAIL_PASSWORD: ${SPRING_MAIL_PASSWORD:-}
-      APP_MAIL_FROM_ADDRESS: ${APP_MAIL_FROM_ADDRESS:-reducalgarybookings@gmail.com}
-      APP_MAIL_COPY_ADDRESS: ${APP_MAIL_COPY_ADDRESS:-reducalgary@gmail.com}
-      APP_FRONTEND_BASE_URL: ${APP_FRONTEND_BASE_URL:-http://localhost:3000}
+      APP_FRONTEND_BASE_URL: http://localhost:3000
+      
+      # Mail config - set here OR in .env file (values here override .env)
+      # SPRING_MAIL_USERNAME: reducalgarybookings@gmail.com
+      # SPRING_MAIL_PASSWORD: your-app-password-here
+      # APP_MAIL_FROM_ADDRESS: reducalgarybookings@gmail.com
+      # APP_MAIL_COPY_ADDRESS: reducalgary@gmail.com
+      
+      # Admin credentials - set here OR in .env file (values here override .env)
+      # APP_ADMIN_USERNAME: admin
+      # APP_ADMIN_PASSWORD: admin
     depends_on:
       - postgres
     ports:
