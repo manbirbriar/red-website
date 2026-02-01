@@ -21,10 +21,18 @@ public class AdminAuthInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI();
+        
+        // Allow login endpoint
         if (path.startsWith("/admin/auth/login")) {
             return true;
         }
+        
+        // Allow public health check (no auth required for basic health)
+        if (path.equals("/actuator/health")) {
+            return true;
+        }
 
+        // All other requests (admin endpoints and actuator) require auth
         String token = request.getHeader("X-Admin-Token");
         if (!authService.isTokenValid(token)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired admin session");

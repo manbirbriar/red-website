@@ -31,3 +31,22 @@ app:
     username: ${APP_ADMIN_USERNAME}
     password: ${APP_ADMIN_PASSWORD}
     session-ttl-minutes: ${APP_ADMIN_SESSION_TTL_MINUTES:240}
+
+logging:
+  level:
+    com.red.api: INFO
+    org.springframework.web: WARN
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} - %msg%n'
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: loggers, health
+      base-path: /actuator
+  endpoint:
+    loggers:
+      enabled: true
+    health:
+      show-details: when-authorized
