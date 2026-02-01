@@ -1,0 +1,37 @@
+FROM jenkins/jenkins:lts
+USER root
+# Install docker CLI using official script (more reliable for ARM64/Debian paths)
+RUN apt-get update && apt-get install -y curl unzip && \
+    curl -fsSL https://get.docker.com | sh && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install AWS CLI v2
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip" && \
+    unzip awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip aws/
+
+# Add jenkins user to docker group and fix socket permissions
+RUN groupadd -f docker && usermod -aG docker jenkins
+
+# Create entrypoint script that fixes socket permissions at runtime
+RUN echo '#!/bin/bash\n\
+set -e\n\
+SOCKET=/var/run/docker.sock\n\
+if [ -S "$SOCKET" ]; then\n\
+    SOCKET_GID=$(stat -c "%g" "$SOCKET")\n\
+    if ! getent group "$SOCKET_GID" > /dev/null; then\n\
+        groupmod -g "$SOCKET_GID" docker 2>/dev/null || true\n\
+    else\n\
+        EXISTING_GROUP=$(getent group "$SOCKET_GID" | cut -d: -f1)\n\
+        usermod -aG "$EXISTING_GROUP" jenkins\n\
+    fi\n\
+fi\n\
+exec gosu jenkins /usr/bin/tini -- /usr/local/bin/jenkins.sh "$@"' > /usr/local/bin/entrypoint.sh && \
+    chmod +x /usr/local/bin/entrypoint.sh
+
+# Install gosu for safe user switching
+RUN apt-get update && apt-get install -y gosu && rm -rf /var/lib/apt/lists/*
+
+# Stay as root so entrypoint can fix permissions, then switch to jenkins
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
