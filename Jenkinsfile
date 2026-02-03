@@ -67,7 +67,8 @@ pipeline {
                 script {
                     echo 'Building Docker Image...'
                     // Build context is root (.) 
-                    sh "docker build -t ${ECR_REGISTRY}/${ECR_REPO_NAME}:${IMAGE_TAG} -f docker/Dockerfile.api ."
+                    // Explicitly target linux/amd64 to prevent "Exec format error" on AWS App Runner
+                    sh "docker build --platform linux/amd64 -t ${ECR_REGISTRY}/${ECR_REPO_NAME}:${IMAGE_TAG} -f docker/Dockerfile.api ."
                 }
             }
         }
